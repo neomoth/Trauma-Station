@@ -1,11 +1,4 @@
 ﻿Entries:
-- author: jessicamaybe
-  changes:
-  - message: Gorillas can now pull objects.
-    type: Tweak
-  id: 9040
-  time: '2025-10-07T09:31:46.0000000+00:00'
-  url: https://github.com/space-wizards/space-station-14/pull/40700
 - author: SurrealShibe
   changes:
   - message: Added the nutri-batard to mime survival boxes in place of the nutri-brick.
@@ -4006,3 +3999,16 @@
   id: 9550
   time: '2026-02-27T16:02:04.0000000+00:00'
   url: https://github.com/space-wizards/space-station-14/pull/42960
+- author: Samuka
+  changes:
+  - message: 'EXPERIMENTAL: Added the xenoborg crystal!'
+    type: Add
+  - message: 'EXPERIMENTAL: Added the xenoborg extractor which can produce the xenoborg
+      crystal.'
+    type: Add
+  - message: 'EXPERIMENTAL: The recipes to make xenoborg chassis and xenoborg modules
+      now uses xenoborg crystals instead of normal materials.'
+    type: Tweak
+  id: 9551
+  time: '2026-02-28T01:08:13.0000000+00:00'
+  url: https://github.com/space-wizards/space-station-14/pull/42796
