@@ -952,9 +952,6 @@
     Bloodstream:
       effects:
       - !type:EvenHealthChange
-        conditions:
-        - !type:TotalDamageCondition
-          max: 100 # Goob - was 50
         damage:
           Brute: -1
           Burn: -1
@@ -1320,8 +1317,6 @@
         factor: 3
       - !type:HealthChange
         conditions:
-        - !type:TotalDamageCondition
-          max: 50
         damage:
           types:
             Blunt: -0.2
@@ -1486,70 +1481,13 @@
         conditions:
         - !type:TemperatureCondition
           max: 213.0
-        - !type:TotalDamageCondition
-          min: 199.9
-        damage:
-          Brute: -2
-          Burn: -2
-      - !type:EvenHealthChange
-        conditions:
-        - !type:TemperatureCondition
+        scaleByTemperature: # Trauma
+          min: 100.0
           max: 213.0
-        - !type:TotalDamageCondition
-          min: 500
+          scale: 1.6
         damage:
-          Brute: -4
-          Burn: -4
-
-- type: reagent
-  id: Necrosol
-  name: reagent-name-necrosol
-  group: Medicine
-  desc: reagent-desc-necrosol
-  physicalDesc: reagent-physical-desc-necrotic
-  flavor: medicine
-  color: "#86a5bd"
-  worksOnTheDead: true
-  plantMetabolism:
-  - !type:PlantAdjustToxins
-    amount: -5
-  - !type:PlantAdjustHealth
-    amount: 5
-  - !type:PlantCryoxadone {}
-  metabolisms:
-    Bloodstream:
-      effects:
-        - !type:ModifyBloodLevel # Goobstation - Cryo rebalance
-          conditions:
-          - !type:TemperatureCondition
-            max: 213.0
-          amount: 10
-        - !type:EvenHealthChange
-          conditions:
-          - !type:TemperatureCondition
-            max: 213.0
-          scaleByTemperature: # Shitmed
-            min: 100.0
-            max: 213.0
-            scale: 1.6
-          damage:
-            # <Goob> - cryo rebalance
-            Airloss: -10
-            Brute: -5
-            Burn: -5
-            Toxin: -5
-            # </Goob>
-        - !type:HealthChange
-          conditions:
-          - !type:TemperatureCondition
-            max: 213.0
-          scaleByTemperature: # Shitmed
-            min: 100.0
-            max: 213.0
-            scale: 1.6
-          damage:
-            types:
-              Poison: -2
+          Brute: -3
+          Burn: -3
 
 - type: reagent
   id : Aloxadone

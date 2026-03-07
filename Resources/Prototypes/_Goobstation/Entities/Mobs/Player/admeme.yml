@@ -453,7 +453,6 @@
     - Alive
     - Critical
     - Dead
-    damageCap: 0
     damage:
       types:
         Heat: -3

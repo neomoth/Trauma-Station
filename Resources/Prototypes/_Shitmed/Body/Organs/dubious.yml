@@ -31,7 +31,6 @@
       - Alive
       - SoftCrit
       - Critical # for mobs that dont have softcrit
-      damageCap: 150
       damage:
         types:
           Blunt: -0.05

@@ -627,9 +627,6 @@
     Bloodstream:
       effects:
       - !type:HealthChange
-        conditions:
-        - !type:TotalDamageCondition
-          min: 50
         damage:
           types:
             Poison: -1

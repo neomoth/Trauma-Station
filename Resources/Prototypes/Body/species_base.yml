@@ -241,7 +241,6 @@
   #- type: PassiveDamage # Trauma - no
   #  allowedStates:
   #  - Alive
-  #  damageCap: 20
   #  damage:
   #    types:
   #      Heat: -0.07
