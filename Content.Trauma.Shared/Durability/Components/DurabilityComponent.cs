@@ -83,12 +83,15 @@ public sealed partial class DurabilityComponent : Component
     public FixedPoint2 MaxDamageRoll = 6;
 
     /// <summary>
-    /// Modifiers that apply to damage depending on the state. <see cref="DurabilityState.Destroyed"/> can be omitted as
+    /// Modifiers that apply to the weapon depending on the state. <see cref="DurabilityState.Destroyed"/> can be omitted as
     /// the entity will be deleted upon reaching that state anyway. <see cref="DurabilityState.Pristine"/> can also be
-    /// omitted unless you want it to deal bonus damage for being fully repaired.
+    /// omitted unless you want to give bonus for being fully repaired (same with <see cref="DurabilityState.Reinforced"/>).
+    /// This modifier can be used for anything ranging form damage on a melee weapon or accuracy on a gun etc.
+    /// Note that for guns, you still always want the number lower for lower durability. values will be multiplied by or
+    /// divided by it based on whether higher number or lower number is more or less beneficial.
     /// </summary>
     [DataField]
-    public SortedDictionary<DurabilityState, float> DamageModifiers = new()
+    public SortedDictionary<DurabilityState, float> DurabilityModifiers = new()
     {
         { DurabilityState.Reinforced, 1.2f },
         { DurabilityState.Worn, 0.9f },

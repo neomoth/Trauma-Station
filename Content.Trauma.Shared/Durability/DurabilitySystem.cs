@@ -15,6 +15,9 @@ using Content.Shared.Tools.Components;
 using Content.Shared.Tools.Systems;
 using Content.Shared.Weapons.Melee;
 using Content.Shared.Weapons.Melee.Events;
+using Content.Shared.Weapons.Ranged.Components;
+using Content.Shared.Weapons.Ranged.Events;
+using Content.Shared.Weapons.Ranged.Systems;
 using Content.Trauma.Shared.Durability.Components;
 using Content.Trauma.Shared.Durability.Events;
 using Robust.Shared.Prototypes;
@@ -32,6 +35,7 @@ public sealed class DurabilitySystem : EntitySystem
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
     [Dependency] private readonly SharedStackSystem _stack = default!;
     [Dependency] private readonly SharedToolSystem _tool = default!;
+    [Dependency] private readonly SharedGunSystem _gun = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
     [Dependency] private readonly IRobustRandom _random = default!;
     [Dependency] private readonly IPrototypeManager _proto = default!;
@@ -59,6 +63,9 @@ public sealed class DurabilitySystem : EntitySystem
         SubscribeLocalEvent<DurabilityComponent, AttemptMeleeEvent>(OnAttemptMelee);
         SubscribeLocalEvent<DurabilityComponent, MeleeHitEvent>(OnMeleeHit);
         SubscribeLocalEvent<DurabilityComponent, GetMeleeDamageEvent>(OnGetMeleeDamage);
+        SubscribeLocalEvent<DurabilityComponent, AttemptShootEvent>(OnAttemptShoot);
+        SubscribeLocalEvent<DurabilityComponent, GunShotEvent>(OnGunShot);
+        SubscribeLocalEvent<DurabilityComponent, GunRefreshModifiersEvent>(OnGunRefreshModifiers);
         SubscribeLocalEvent<DurabilityComponent, DurabilityDamageChangedEvent>(OnDurabilityDamageChanged);
         SubscribeLocalEvent<DurabilityComponent, DurabilityStateChangedEvent>(OnDurabilityStateChanged);
         SubscribeLocalEvent<DurabilityComponent, InteractUsingEvent>(OnInteractUsing);
@@ -123,9 +130,9 @@ public sealed class DurabilitySystem : EntitySystem
         return DurabilityState.Pristine;
     }
 
-    private FixedPoint2 GetDamageModifier(DurabilityComponent comp)
+    private FixedPoint2 GetDurabilityModifier(DurabilityComponent comp)
     {
-        if (!comp.DamageModifiers.TryGetValue(comp.DurabilityState, out var mod))
+        if (!comp.DurabilityModifiers.TryGetValue(comp.DurabilityState, out var mod))
             return comp.DurabilityState is DurabilityState.Destroyed ? 0 : 1;
         return mod;
     }
@@ -181,9 +188,23 @@ public sealed class DurabilitySystem : EntitySystem
             args.PushMarkup(Loc.GetString("durability-examine-condition",
                 ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
                 ("state", ent.Comp.DurabilityState.ToString())));
-            args.PushMarkup(Loc.GetString("durability-examine-damage",
-                ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
-                ("mod", GetDamageModifier(ent.Comp))));
+
+            // only show if it even has melee damage
+            if(HasComp<MeleeWeaponComponent>(ent))
+            {
+                args.PushMarkup(Loc.GetString("durability-examine-weapon",
+                    ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
+                    ("mod", GetDurabilityModifier(ent.Comp))));
+            }
+
+            // only show if it even has gun values like this
+            if(HasComp<GunComponent>(ent))
+            {
+                args.PushMarkup(Loc.GetString("durability-examine-gun",
+                    ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
+                    ("mod", GetDurabilityModifier(ent.Comp))));
+            }
+
             var entries = GetRepairMaterialString(ent.Comp);
             foreach (var entry in entries)
             {
@@ -199,7 +220,7 @@ public sealed class DurabilitySystem : EntitySystem
             return;
         args.Cancelled = true;
         if (ent.Comp.DestroyedSwingAttemptPopup.HasValue)
-            args.Message = Loc.GetString(ent.Comp.DestroyedSwingAttemptPopup, ("weapon", MetaData(ent.Owner).EntityName));
+            args.Message = Loc.GetString(ent.Comp.DestroyedSwingAttemptPopup, ("weapon", Name(ent.Owner)));
     }
 
     private void OnMeleeHit(Entity<DurabilityComponent> ent, ref MeleeHitEvent args)
@@ -218,7 +239,35 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnGetMeleeDamage(Entity<DurabilityComponent> ent, ref GetMeleeDamageEvent args)
     {
-        args.Damage *= GetDamageModifier(ent.Comp);
+        args.Damage *= GetDurabilityModifier(ent.Comp);
+    }
+
+    private void OnAttemptShoot(Entity<DurabilityComponent> ent, ref AttemptShootEvent args)
+    {
+        _gun.RefreshModifiers(ent.Owner, args.User);
+        if (ent.Comp.DurabilityState is not DurabilityState.Destroyed)
+            return;
+        args.Cancelled = true;
+        if (ent.Comp.DestroyedSwingAttemptPopup.HasValue)
+            args.Message = Loc.GetString(ent.Comp.DestroyedSwingAttemptPopup, ("weapon", Name(ent.Owner)));
+    }
+
+    private void OnGunShot(Entity<DurabilityComponent> ent, ref GunShotEvent args)
+    {
+        var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
+        var damage = random.NextFloat(ent.Comp.MinDamageRoll.Float(), ent.Comp.MaxDamageRoll.Float());
+        DamageEntity(ent.Owner, damage, ent.Comp, args.User); // targets not applicable
+    }
+
+    private void OnGunRefreshModifiers(Entity<DurabilityComponent> ent, ref GunRefreshModifiersEvent args)
+    {
+        args.FireRate *= GetDurabilityModifier(ent.Comp).Float();
+        args.BurstFireRate *= GetDurabilityModifier(ent.Comp).Float();
+        args.MaxAngle /= GetDurabilityModifier(ent.Comp).Float();
+        args.MinAngle /= GetDurabilityModifier(ent.Comp).Float();
+        args.AngleDecay *= GetDurabilityModifier(ent.Comp).Float();
+        args.AngleIncrease *= GetDurabilityModifier(ent.Comp).Float();
+        args.BurstCooldown /= GetDurabilityModifier(ent.Comp).Float();
     }
 
     private void OnDurabilityDamageChanged(Entity<DurabilityComponent> ent, ref DurabilityDamageChangedEvent args)

@@ -1,7 +1,9 @@
 durability-examine-condition =
     {"[color=#815dc9]"}Current condition is [color={$color}]{$state}[/color][/color]
-durability-examine-damage =
+durability-examine-weapon =
     {"[color=#815dc9]"}It has a [color={$color}]{$mod}x[/color] damage modifier.[/color]
+durability-examine-gun =
+    {"[color=#815dc9]"}Its gun stats have a [color={$color}]{$mod}x[/color] modifier applied.[/color]
 durability-attempt-melee-destroyed =
     The {$weapon} is too broken to use!
 durability-repair-popup =
