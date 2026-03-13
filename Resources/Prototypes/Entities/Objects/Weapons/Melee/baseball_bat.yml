@@ -137,9 +137,6 @@
     repairMaterials:
       Wood: 4, 6
     maxRepairBonus: 8
-    repairTool: Welding
-    toolRepairAmount: 5, 8
-    fuelCost: 8
   # </Trauma>
 
 - type: entity
