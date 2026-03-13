@@ -4346,3 +4346,10 @@ Entries:
   id: 510
   time: '2026-03-13T22:40:10.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1264
+- author: momoyawn
+  changes:
+  - type: Add
+    message: Hand of God applies holy fire damage over time, stacking on hit.
+  id: 511
+  time: '2026-03-13T22:44:33.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1265
