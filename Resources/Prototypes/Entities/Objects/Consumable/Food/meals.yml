@@ -491,6 +491,11 @@
   - type: Tag
     tags:
     - Meat
+# <Trauma>
+  - type: Construction
+    graph: Friedeggs
+    node: twoeggs
+#</Trauma>
 # Tastes like egg, salt, pepper.
 
 - type: entity
