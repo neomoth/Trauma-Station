@@ -100,7 +100,7 @@
     tags:
     - BaseballBat
   - type: UndetectableContraband #Goobstation-Contraband detector
-  # Trauma begin
+  # <Trauma>
   - type: Durability
     durabilityThresholds:
       # Reinforced, if not specified here, will default to anything under 0.
@@ -135,14 +135,12 @@
     maxDamageRoll: 5
     repairDoAfter: 3
     repairMaterials:
-      MaterialWoodPlank: 4, 6
-      MaterialWoodPlank10: 4, 6
-      MaterialWoodPlank1: 4, 6
+      Wood: 4, 6
     maxRepairBonus: 8
     repairTool: Welding
     toolRepairAmount: 5, 8
     fuelCost: 8
-  # Trauma end
+  # </Trauma>
 
 - type: entity
   name: incomplete baseball bat

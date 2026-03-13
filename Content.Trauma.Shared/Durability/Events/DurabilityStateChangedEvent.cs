@@ -1,4 +1,4 @@
 namespace Content.Trauma.Shared.Durability.Events;
 
 [ByRefEvent]
-public record struct DurabilityStateChangedEvent(DurabilityState OldState, DurabilityState NewState, EntityUid Weapon, EntityUid? Attacker = null, List<EntityUid>? Targets = null);
+public record struct DurabilityStateChangedEvent(DurabilityState OldState, DurabilityState NewState, EntityUid Weapon, EntityUid? Attacker = null, HashSet<EntityUid>? Targets = null);

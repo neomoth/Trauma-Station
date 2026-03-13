@@ -5,6 +5,7 @@ using Content.Shared.DoAfter;
 using Content.Shared.Examine;
 using Content.Shared.FixedPoint;
 using Content.Shared.Interaction;
+using Content.Shared.Materials;
 using Content.Shared.Popups;
 using Content.Shared.Random.Helpers;
 using Content.Shared.Stacks;
@@ -18,6 +19,7 @@ using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Serialization;
 using Robust.Shared.Timing;
+using Robust.Shared.Utility;
 
 namespace Content.Trauma.Shared.Durability;
 
@@ -42,17 +44,10 @@ public sealed class DurabilitySystem : EntitySystem
         {DurabilityState.Destroyed, Color.Red},
     };
 
-    private static readonly LocId ExamineTextCondition = new("durability-examine-condition");
-    private static readonly LocId ExamineTextDamage = new("durability-examine-damage");
-    private static readonly LocId ExamineTextColor = new("durability-repair-colortext");
-    private static readonly LocId ExamineTextIrreparable = new("durability-repair-irreparable");
-    private static readonly LocId ExamineTextRepairReqs = new("durability-repair-needed");
-    private static readonly LocId ExamineTextRepairReqSingle = new("durability-repair-single");
-    private static readonly LocId ExamineTextRepairReqMultiple = new("durability-repair-multiple");
-    private static readonly LocId ToolQualityPrefix = new("durability-tool-");
-    private static readonly LocId RepairPopup = new("durability-repair-popup");
-    private static readonly LocId ReinforcePopup = new("durability-reinforce-popup");
-    private static readonly LocId MaxRepairPopup = new("durability-repair-max");
+    private const string ExamineTextColor = "durability-repair-colortext";
+    private const string ToolQualityPrefix = "durability-tool-";
+    private const string ExamineTextRepairReqs = "durability-repair-needed";
+    private static readonly HashSet<MaterialPrototype> ExamineMats = [];
 
     public override void Initialize()
     {
@@ -69,7 +64,7 @@ public sealed class DurabilitySystem : EntitySystem
         SubscribeLocalEvent<DurabilityComponent, RepairToolDoAfterEvent>(OnRepairToolDoAfter);
     }
 
-    public bool DamageEntity(EntityUid uid, FixedPoint2 amount, DurabilityComponent? comp = null, EntityUid? attacker = null, List<EntityUid>? targets = null)
+    public bool DamageEntity(EntityUid uid, FixedPoint2 amount, DurabilityComponent? comp = null, EntityUid? attacker = null, HashSet<EntityUid>? targets = null)
     {
         if (!Resolve(uid, ref comp))
             return false;
@@ -78,7 +73,7 @@ public sealed class DurabilitySystem : EntitySystem
             return false;
 
         // Check if anything may end up negating the damage. Negative damage heals, obviously.
-        var beforeEv = new BeforeDurabilityDamageChangedEvent(uid, amount);
+        var beforeEv = new DurabilityChangeAttemptEvent(uid, amount);
         RaiseLocalEvent(uid, ref beforeEv);
         amount = beforeEv.Damage;
         var oldDamage = comp.Damage;
@@ -136,38 +131,35 @@ public sealed class DurabilitySystem : EntitySystem
     // Hello welcome to the super turbo shitcode inc™ string builder function of doom and gloom.
     private List<string> GetRepairMaterialString(DurabilityComponent comp)
     {
-        List<EntityPrototype> seen = [];
-        foreach (var protoId in comp.RepairMaterials.Keys)
+        ExamineMats.Clear();
+        foreach (var material in comp.RepairMaterials.Keys)
         {
-            if (!_proto.Resolve(protoId, out var proto))
+            if (!_proto.Resolve(material, out var proto))
                 continue;
-            if (proto.Parents is not null && proto.Parents.Any(parent => seen.Any(s=>s.ID == parent)))
-                continue;
-            seen.Add(proto);
+            ExamineMats.Add(proto);
         }
 
-        if (comp.RepairTool is null && seen.Count == 0)
+        if (comp.RepairTool is null && ExamineMats.Count == 0)
             // ReSharper disable once UseCollectionExpression | literally cant, client no likey
-            return new List<string> {Loc.GetString(ExamineTextIrreparable)};
-        var start = (seen.Count == 1 && comp.RepairTool is null) || (seen.Count == 0 && comp.RepairTool is not null)
-            ? ExamineTextRepairReqSingle
-            : ExamineTextRepairReqMultiple;
+            return new List<string> {Loc.GetString("durability-repair-irreparable")};
+        var start = (ExamineMats.Count == 1 && comp.RepairTool is null) || (ExamineMats.Count == 0 && comp.RepairTool is not null)
+            ? "durability-repair-single"
+            : "durability-repair-multiple";
         // ReSharper disable once UseCollectionExpression | shut the fuck up I CANNNTTTTTT
         List<string> entries = new(){start};
 
-        if (comp.RepairTool is not null)
+        if (comp.RepairTool is {} tool)
         {
             entries.Add(Loc.GetString(ExamineTextColor,
-                ("data", $"- {Loc.GetString($"{ToolQualityPrefix}{comp.RepairTool.Value.Id.ToLower()}")}")));
+                ("data", Loc.GetString($"{ToolQualityPrefix}{tool.Id.ToLower()}"))));
         }
 
-        entries.AddRange(seen.Select(material => Loc.GetString(ExamineTextColor, ("data", $"- {material.Name}"))));
+        entries.AddRange(ExamineMats.Select(material => Loc.GetString(ExamineTextColor, ("data", $"{Loc.GetString(material.Name)} {Loc.GetString(material.Unit)}"))));
 
         // only one entry was added, first entry is just the starting text
         if (entries.Count == 2)
         {
-            var dashIdx = entries[1].IndexOf("- ", StringComparison.Ordinal);
-            // entries = new List<string> { $"{start}{entries[1].Remove(dashIdx, 2)}" }; // merge second into first, remove the dash
+            var dashIdx = entries[1].IndexOf("- ", StringComparison.Ordinal); // mega poo-poo stinky shitcode but unless i want to spend 2 hours rewriting this whole function, it stays.
             // ReSharper disable once UseCollectionExpression | SHUT UUUUPPPPP
             entries = new List<string>
             {
@@ -180,17 +172,17 @@ public sealed class DurabilitySystem : EntitySystem
         return entries;
     }
 
-    private void OnExamined(EntityUid uid, DurabilityComponent comp, ref ExaminedEvent args)
+    private void OnExamined(Entity<DurabilityComponent> ent, ref ExaminedEvent args)
     {
         using (args.PushGroup("durability"))
         {
-            args.PushMarkup(Loc.GetString(ExamineTextCondition,
-                ("color", AssociatedColors[comp.DurabilityState].ToHex()),
-                ("state", comp.DurabilityState.ToString())));
-            args.PushMarkup(Loc.GetString(ExamineTextDamage,
-                ("color", AssociatedColors[comp.DurabilityState].ToHex()),
-                ("mod", GetDamageModifier(comp))));
-            var entries = GetRepairMaterialString(comp);
+            args.PushMarkup(Loc.GetString("durability-examine-condition",
+                ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
+                ("state", ent.Comp.DurabilityState.ToString())));
+            args.PushMarkup(Loc.GetString("durability-examine-damage",
+                ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
+                ("mod", GetDamageModifier(ent.Comp))));
+            var entries = GetRepairMaterialString(ent.Comp);
             foreach (var entry in entries)
             {
                 args.PushMarkup(entry);
@@ -198,17 +190,17 @@ public sealed class DurabilitySystem : EntitySystem
         }
     }
 
-    private void OnAttemptMelee(EntityUid uid, DurabilityComponent comp, AttemptMeleeEvent args)
+    private void OnAttemptMelee(Entity<DurabilityComponent> ent, ref AttemptMeleeEvent args)
     {
         // Prohibit attacking with a destroyed weapon; it is in such a state of disrepair that it cannot be used.
-        if (comp.DurabilityState is not DurabilityState.Destroyed)
+        if (ent.Comp.DurabilityState is not DurabilityState.Destroyed)
             return;
         args.Cancelled = true;
-        if (comp.DestroyedSwingAttemptPopup.HasValue)
-            args.Message = Loc.GetString(comp.DestroyedSwingAttemptPopup, ("weapon", MetaData(uid).EntityName));
+        if (ent.Comp.DestroyedSwingAttemptPopup.HasValue)
+            args.Message = Loc.GetString(ent.Comp.DestroyedSwingAttemptPopup, ("weapon", MetaData(ent.Owner).EntityName));
     }
 
-    private void OnMeleeHit(EntityUid uid, DurabilityComponent comp, ref MeleeHitEvent args)
+    private void OnMeleeHit(Entity<DurabilityComponent> ent, ref MeleeHitEvent args)
     {
         if (!args.IsHit)
             return;
@@ -217,17 +209,17 @@ public sealed class DurabilitySystem : EntitySystem
         if (!args.HitEntities.Any(HasComp<DamageableComponent>))
             return;
 
-        var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(uid));
-        var damage = random.NextFloat(comp.MinDamageRoll.Float(), comp.MaxDamageRoll.Float());
-        DamageEntity(uid, damage, comp, args.User, args.HitEntities.ToList());
+        var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
+        var damage = random.NextFloat(ent.Comp.MinDamageRoll.Float(), ent.Comp.MaxDamageRoll.Float());
+        DamageEntity(ent.Owner, damage, ent.Comp, args.User, args.HitEntities.ToHashSet());
     }
 
-    private void OnGetMeleeDamage(EntityUid uid, DurabilityComponent comp, ref GetMeleeDamageEvent args)
+    private void OnGetMeleeDamage(Entity<DurabilityComponent> ent, ref GetMeleeDamageEvent args)
     {
-        args.Damage *= GetDamageModifier(comp);
+        args.Damage *= GetDamageModifier(ent.Comp);
     }
 
-    private void OnDurabilityDamageChanged(EntityUid uid, DurabilityComponent comp, DurabilityDamageChangedEvent args)
+    private void OnDurabilityDamageChanged(Entity<DurabilityComponent> ent, ref DurabilityDamageChangedEvent args)
     {
         var diff = args.Damage - args.OldDamage;
 
@@ -235,70 +227,70 @@ public sealed class DurabilitySystem : EntitySystem
         {
             case < 0:
             {
-                var locId = args.OldDamage <= 0 && args.Damage <= 0 ? ReinforcePopup : RepairPopup;
-                var amount = args.OldDamage - FixedPoint2.Max(args.Damage, -comp.MaxRepairBonus);
+                var locId = args.OldDamage <= 0 && args.Damage <= 0 ? "durability-reinforce-popup" : "durability-repair-popup";
+                var amount = args.OldDamage - FixedPoint2.Max(args.Damage, -ent.Comp.MaxRepairBonus);
                 _popup.PopupPredictedCoordinates(
-                    Loc.GetString(locId, ("weapon", MetaData(uid).EntityName), ("amount", amount)),
-                    Transform(uid).Coordinates,
+                    Loc.GetString(locId, ("weapon", Name(ent.Owner)), ("amount", amount)),
+                    Transform(ent.Owner).Coordinates,
                     null);
                 break;
             }
             case > 0:
             {
-                if (!comp.DamagePopups.TryGetValue(comp.DurabilityState, out var pool))
+                if (!ent.Comp.DamagePopups.TryGetValue(ent.Comp.DurabilityState, out var pool))
                     return;
                 var locId = _random.Pick(pool);
                 _popup.PopupPredictedCoordinates(Loc.GetString(locId),
-                    Transform(uid).Coordinates,
+                    Transform(ent.Owner).Coordinates,
                     null,
                     PopupType.SmallCaution);
                 break;
             }
-            case 0 when comp.Damage <= -comp.MaxRepairBonus:
+            case 0 when ent.Comp.Damage <= -ent.Comp.MaxRepairBonus:
             {
                 _popup.PopupPredictedCoordinates(
-                    Loc.GetString(MaxRepairPopup, ("weapon", MetaData(uid).EntityName)),
-                    Transform(uid).Coordinates,
+                    Loc.GetString("durability-repair-max", ("weapon", Name(ent.Owner))),
+                    Transform(ent.Owner).Coordinates,
                     null);
                 break;
             }
         }
     }
 
-    private void OnDurabilityStateChanged(EntityUid uid, DurabilityComponent comp, DurabilityStateChangedEvent args)
+    private void OnDurabilityStateChanged(Entity<DurabilityComponent> ent, ref DurabilityStateChangedEvent args)
     {
         if (args.NewState is not DurabilityState.Destroyed)
             return;
 
-        comp.OnBreakBehavior?.Execute(uid, _destructible);
-        if (!comp.DeleteOnDestroyed)
+        ent.Comp.OnBreakBehavior?.Execute(ent.Owner, _destructible);
+        if (!ent.Comp.DeleteOnDestroyed)
             return;
-        PredictedQueueDel(uid);
+        PredictedQueueDel(ent.Owner);
 
         if (TryComp<MeleeWeaponComponent>(args.Attacker, out var userMelee))
         {
-            userMelee.NextAttack = _timing.CurTime + TimeSpan.FromSeconds(1); // this makes me irrationally upset
+            userMelee.NextAttack = _timing.CurTime + TimeSpan.FromSeconds(1 / userMelee.AttackRate);
             Dirty(args.Attacker.Value, userMelee);
         }
     }
 
-    private void OnInteractUsing(EntityUid uid, DurabilityComponent comp, InteractUsingEvent args)
+    private void OnInteractUsing(Entity<DurabilityComponent> ent, ref InteractUsingEvent args)
     {
-        if (args.Target != uid || args.Handled)
+        if (args.Target != ent.Owner || args.Handled)
             return;
 
-        if (TryComp<ToolComponent>(args.Used, out var tool) && comp.RepairTool is not null)
+        if (TryComp<ToolComponent>(args.Used, out var tool) && ent.Comp.RepairTool is not null)
         {
-            if (_tool.HasQuality(args.Used, comp.RepairTool, tool))
+            if (_tool.HasQuality(args.Used, ent.Comp.RepairTool, tool))
             {
-                _tool.UseTool(uid,
+                _tool.UseTool(ent.Owner,
                     args.User,
                     args.Target,
-                    comp.RepairDoAfter,
-                    [comp.RepairTool],
+                    ent.Comp.RepairDoAfter,
+                    [ent.Comp.RepairTool],
                     new RepairToolDoAfterEvent(),
                     out _,
-                    comp.FuelCost,
+                    ent.Comp.FuelCost,
                     tool);
                 args.Handled = true;
                 return;
@@ -306,32 +298,43 @@ public sealed class DurabilitySystem : EntitySystem
             // fall through to see if it is an accepted """material"""
         }
 
-        if (!comp.RepairMaterials.ContainsKey(MetaData(args.Used).EntityPrototype!))
+        if (!HasComp<MaterialComponent>(args.Used))
             return;
+        if (!TryComp<PhysicalCompositionComponent>(args.Used, out var composition))
+            return;
+
+        var minmax = ent.Comp.RepairMaterials
+            .Where(kvp => composition.MaterialComposition.ContainsKey(kvp.Key))
+            .Select(kvp => kvp.Value)
+            .FirstOrNull();
+
+        if (minmax is null)
+            return;
+
         _doAfter.TryStartDoAfter(new DoAfterArgs(EntityManager,
             args.User,
-            comp.RepairDoAfter,
-            new RepairItemDoAfterEvent(),
-            uid,
+            ent.Comp.RepairDoAfter,
+            new RepairItemDoAfterEvent
+            {
+                MinMax = minmax.Value,
+            },
+            ent.Owner,
             args.Target,
             args.Used));
         args.Handled = true;
     }
 
-    private void OnRepairItemDoAfter(EntityUid uid, DurabilityComponent comp, RepairItemDoAfterEvent args)
+    private void OnRepairItemDoAfter(Entity<DurabilityComponent> ent, ref RepairItemDoAfterEvent args)
     {
         if (args.Cancelled || args.Handled || Deleted(args.Used))
             return;
 
-        if (!comp.RepairMaterials.TryGetValue(MetaData(args.Used.Value).EntityPrototype!, out var minmax))
-            return;
-
-        var (min, max) = minmax;
+        var (min, max) = args.MinMax;
 
         // deal negative damage to heal
-        if (!DamageEntity(uid,
-                -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(uid)).NextFloat(min, max),
-                comp))
+        if (!DamageEntity(ent.Owner,
+                -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner)).NextFloat(min, max),
+                ent.Comp))
             return;
 
         if (TryComp<StackComponent>(args.Used, out var stack))
@@ -342,19 +345,19 @@ public sealed class DurabilitySystem : EntitySystem
         args.Handled = true;
     }
 
-    private void OnRepairToolDoAfter(EntityUid uid, DurabilityComponent comp, RepairToolDoAfterEvent args)
+    private void OnRepairToolDoAfter(Entity<DurabilityComponent> ent, ref RepairToolDoAfterEvent args)
     {
         if (args.Cancelled || args.Handled || Deleted(args.Used))
             return;
 
-        if (comp.RepairTool is null)
+        if (ent.Comp.RepairTool is null)
             return;
 
-        var (min, max) = comp.ToolRepairAmount;
+        var (min, max) = ent.Comp.ToolRepairAmount;
 
-        DamageEntity(uid,
-            -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(uid)).NextFloat(min, max),
-            comp);
+        DamageEntity(ent.Owner,
+            -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner)).NextFloat(min, max),
+            ent.Comp);
 
         _tool.PlayToolSound(args.Used.Value, Comp<ToolComponent>(args.Used.Value), args.User);
 
