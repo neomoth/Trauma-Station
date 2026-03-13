@@ -18,6 +18,7 @@ using Content.Trauma.Common.Knowledge;
 using Content.Trauma.Common.Projectiles;
 using Content.Trauma.Common.Stack;
 using Content.Trauma.Shared.Damage;
+using Content.Trauma.Shared.Durability.Components;
 using Content.Trauma.Shared.Knowledge.Systems;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Timing;
@@ -62,6 +63,7 @@ public sealed class QualitySystem : EntitySystem
         SubscribeLocalEvent<DamageOtherOnHitComponent, ApplyQualityEvent>(OnSpearApplyQuality);
         SubscribeLocalEvent<GunComponent, ApplyQualityEvent>(OnGunApplyQuality);
         SubscribeLocalEvent<ProjectileComponent, ApplyQualityEvent>(OnProjectileApplyQuality);
+        SubscribeLocalEvent<DurabilityComponent, ApplyQualityEvent>(OnDurabilityApplyQuality);
 
         // interactions
         SubscribeLocalEvent<QualityComponent, ConstructionChangedEvent>(OnConstructionChanged);
@@ -140,6 +142,12 @@ public sealed class QualitySystem : EntitySystem
     private void OnProjectileApplyQuality(Entity<ProjectileComponent> ent, ref ApplyQualityEvent args)
     {
         ent.Comp.Damage *= args.Modifier(1.125f);
+        Dirty(ent);
+    }
+
+    private void OnDurabilityApplyQuality(Entity<DurabilityComponent> ent, ref ApplyQualityEvent args)
+    {
+        ent.Comp.DamageProbability /= args.Modifier(1.12f);
         Dirty(ent);
     }
 
