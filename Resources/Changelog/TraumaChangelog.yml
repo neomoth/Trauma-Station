@@ -4454,3 +4454,10 @@ Entries:
   id: 522
   time: '2026-03-14T15:03:37.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1291
+- author: deltanedas
+  changes:
+  - type: Tweak
+    message: Old scrolls now have text of random prayers.
+  id: 523
+  time: '2026-03-14T15:46:48.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1294
