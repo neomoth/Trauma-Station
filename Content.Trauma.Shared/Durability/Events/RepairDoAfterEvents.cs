@@ -7,9 +7,25 @@ using Robust.Shared.Serialization;
 namespace Content.Trauma.Shared.Durability.Events;
 
 [Serializable, NetSerializable]
-public sealed partial class RepairItemDoAfterEvent : SimpleDoAfterEvent
+public sealed partial class RepairItemDoAfterEvent : DoAfterEvent
 {
-    public Vector2 MinMax { get; init; }
+    [DataField]
+    public Vector2 MinMax;
+
+    private RepairItemDoAfterEvent()
+    {
+
+    }
+
+    public RepairItemDoAfterEvent(Vector2 minMax)
+    {
+        MinMax = minMax;
+    }
+
+    public override DoAfterEvent Clone()
+    {
+        return new RepairItemDoAfterEvent(MinMax);
+    }
 };
 
 [Serializable, NetSerializable]

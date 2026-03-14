@@ -365,10 +365,7 @@ public sealed class DurabilitySystem : EntitySystem
         _doAfter.TryStartDoAfter(new DoAfterArgs(EntityManager,
             args.User,
             ent.Comp.RepairDoAfter,
-            new RepairItemDoAfterEvent
-            {
-                MinMax = minmax.Value,
-            },
+            new RepairItemDoAfterEvent(minmax.Value),
             ent.Owner,
             args.Target,
             args.Used));
