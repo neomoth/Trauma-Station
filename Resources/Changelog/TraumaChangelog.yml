@@ -4564,3 +4564,10 @@ Entries:
   id: 536
   time: '2026-03-15T13:46:24.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1329
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed plasmamen needing to eat.
+  id: 537
+  time: '2026-03-15T14:58:56.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1325
