@@ -4557,3 +4557,10 @@ Entries:
   id: 535
   time: '2026-03-15T12:49:53.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1324
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed slime, moths and diona not knowing their species languages.
+  id: 536
+  time: '2026-03-15T13:46:24.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1329
