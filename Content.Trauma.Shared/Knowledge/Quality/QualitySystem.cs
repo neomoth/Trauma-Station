@@ -177,7 +177,7 @@ public sealed class QualitySystem : EntitySystem
         ent.Comp.DamageProbability /= args.Modifier(1.12f);
         Dirty(ent);
     }
-    
+
     private void OnShieldApplyQuality(Entity<BlockingComponent> ent, ref ApplyQualityEvent args)
     {
         var modifierPlus = args.Modifier(1.125f);
