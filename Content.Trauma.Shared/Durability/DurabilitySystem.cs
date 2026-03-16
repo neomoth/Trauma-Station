@@ -67,6 +67,7 @@ public sealed class DurabilitySystem : EntitySystem
         SubscribeLocalEvent<DurabilityComponent, GunShotEvent>(OnGunShot);
         SubscribeLocalEvent<DurabilityComponent, GunRefreshModifiersEvent>(OnGunRefreshModifiers);
         SubscribeLocalEvent<DurabilityComponent, DurabilityDamageChangedEvent>(OnDurabilityDamageChanged);
+        SubscribeLocalEvent<DurabilityComponent, DurabilityDamageChangedEvent>(OnDurabilityDamageChanged);
         SubscribeLocalEvent<DurabilityComponent, DurabilityStateChangedEvent>(OnDurabilityStateChanged);
         SubscribeLocalEvent<DurabilityComponent, InteractUsingEvent>(OnInteractUsing);
         SubscribeLocalEvent<DurabilityComponent, RepairItemDoAfterEvent>(OnRepairItemDoAfter);
@@ -190,7 +191,7 @@ public sealed class DurabilitySystem : EntitySystem
                 ("state", ent.Comp.DurabilityState.ToString())));
 
             // only show if it even has melee damage
-            if(HasComp<MeleeWeaponComponent>(ent))
+            if (HasComp<MeleeWeaponComponent>(ent))
             {
                 args.PushMarkup(Loc.GetString("durability-examine-weapon",
                     ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
@@ -198,7 +199,7 @@ public sealed class DurabilitySystem : EntitySystem
             }
 
             // only show if it even has gun values like this
-            if(HasComp<GunComponent>(ent))
+            if (HasComp<GunComponent>(ent))
             {
                 args.PushMarkup(Loc.GetString("durability-examine-gun",
                     ("color", AssociatedColors[ent.Comp.DurabilityState].ToHex()),
@@ -244,7 +245,6 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnAttemptShoot(Entity<DurabilityComponent> ent, ref AttemptShootEvent args)
     {
-        _gun.RefreshModifiers(ent.Owner, args.User);
         if (ent.Comp.DurabilityState is not DurabilityState.Destroyed)
             return;
         args.Cancelled = true;
@@ -261,13 +261,14 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnGunRefreshModifiers(Entity<DurabilityComponent> ent, ref GunRefreshModifiersEvent args)
     {
-        args.FireRate *= GetDurabilityModifier(ent.Comp).Float();
-        args.BurstFireRate *= GetDurabilityModifier(ent.Comp).Float();
-        args.MaxAngle /= GetDurabilityModifier(ent.Comp).Float();
-        args.MinAngle /= GetDurabilityModifier(ent.Comp).Float();
-        args.AngleDecay *= GetDurabilityModifier(ent.Comp).Float();
-        args.AngleIncrease *= GetDurabilityModifier(ent.Comp).Float();
-        args.BurstCooldown /= GetDurabilityModifier(ent.Comp).Float();
+        var mod = GetDurabilityModifier(ent.Comp).Float();
+        args.FireRate *= mod;
+        args.BurstFireRate *= mod;
+        args.MaxAngle /= mod;
+        args.MinAngle /= mod;
+        args.AngleDecay *= mod;
+        args.AngleIncrease *= mod;
+        args.BurstCooldown /= mod;
     }
 
     private void OnDurabilityDamageChanged(Entity<DurabilityComponent> ent, ref DurabilityDamageChangedEvent args)
@@ -310,6 +311,12 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnDurabilityStateChanged(Entity<DurabilityComponent> ent, ref DurabilityStateChangedEvent args)
     {
+        // guns need to refresh modifiers
+        if (HasComp<GunComponent>(ent))
+        {
+            _gun.RefreshModifiers(ent.Owner, args.Attacker);
+        }
+
         if (args.NewState is not DurabilityState.Destroyed)
             return;
 
@@ -346,7 +353,7 @@ public sealed class DurabilitySystem : EntitySystem
                 args.Handled = true;
                 return;
             }
-            // fall through to see if it is an accepted """material"""
+            // fall through to see if it is an accepted material
         }
 
         if (!HasComp<MaterialComponent>(args.Used))
@@ -414,7 +421,7 @@ public sealed class DurabilitySystem : EntitySystem
 }
 
 [Serializable, NetSerializable]
-public enum DurabilityState
+public enum DurabilityState : sbyte
 {
     Reinforced = -1,
     Pristine = 0,
