@@ -67,7 +67,7 @@ public sealed class DurabilitySystem : EntitySystem
         SubscribeLocalEvent<DurabilityComponent, GunShotEvent>(OnGunShot);
         SubscribeLocalEvent<DurabilityComponent, GunRefreshModifiersEvent>(OnGunRefreshModifiers);
         SubscribeLocalEvent<DurabilityComponent, DurabilityDamageChangedEvent>(OnDurabilityDamageChanged);
-        SubscribeLocalEvent<DurabilityComponent, DurabilityDamageChangedEvent>(OnDurabilityDamageChanged);
+        SubscribeLocalEvent<GunComponent, DurabilityStateChangedEvent>(OnStateChangeGun);
         SubscribeLocalEvent<DurabilityComponent, DurabilityStateChangedEvent>(OnDurabilityStateChanged);
         SubscribeLocalEvent<DurabilityComponent, InteractUsingEvent>(OnInteractUsing);
         SubscribeLocalEvent<DurabilityComponent, RepairItemDoAfterEvent>(OnRepairItemDoAfter);
@@ -311,12 +311,6 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnDurabilityStateChanged(Entity<DurabilityComponent> ent, ref DurabilityStateChangedEvent args)
     {
-        // guns need to refresh modifiers
-        if (HasComp<GunComponent>(ent))
-        {
-            _gun.RefreshModifiers(ent.Owner, args.Attacker);
-        }
-
         if (args.NewState is not DurabilityState.Destroyed)
             return;
 
@@ -330,6 +324,12 @@ public sealed class DurabilitySystem : EntitySystem
             userMelee.NextAttack = _timing.CurTime + TimeSpan.FromSeconds(1 / userMelee.AttackRate);
             Dirty(args.Attacker.Value, userMelee);
         }
+    }
+
+    private void OnStateChangeGun(Entity<GunComponent> ent, ref DurabilityStateChangedEvent args)
+    {
+        // guns need to refresh modifiers
+        _gun.RefreshModifiers(ent.Owner, args.Attacker);
     }
 
     private void OnInteractUsing(Entity<DurabilityComponent> ent, ref InteractUsingEvent args)
