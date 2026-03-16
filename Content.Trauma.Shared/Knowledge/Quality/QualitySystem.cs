@@ -1,10 +1,13 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
 using Content.Shared.Armor;
-using Content.Shared.Damage;
+using Content.Shared.Blocking;
+using Content.Shared.Clothing;
+using Content.Shared.Clothing.Components;
 using Content.Shared.Damage.Components;
 using Content.Shared.Destructible;
 using Content.Shared.Destructible.Thresholds.Triggers;
+using Content.Shared.Explosion.Components;
 using Content.Shared.NameModifier.EntitySystems;
 using Content.Shared.Projectiles;
 using Content.Shared.Random.Helpers;
@@ -14,7 +17,6 @@ using Content.Shared.Weapons.Ranged.Components;
 using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 using Content.Trauma.Common.Construction;
-using Content.Trauma.Common.Knowledge;
 using Content.Trauma.Common.Projectiles;
 using Content.Trauma.Common.Stack;
 using Content.Trauma.Shared.Damage;
@@ -58,12 +60,16 @@ public sealed class QualitySystem : EntitySystem
         SubscribeLocalEvent<QualityComponent, GetMeleeDamageEvent>(OnGetMeleeDamage);
         SubscribeLocalEvent<QualityComponent, GunRefreshModifiersEvent>(OnGunRefreshModifiers);
         SubscribeLocalEvent<ArmorComponent, ApplyQualityEvent>(OnArmorApplyQuality);
+        SubscribeLocalEvent<ClothingComponent, ApplyQualityEvent>(OnClothingApplyQuality);
+        SubscribeLocalEvent<ExplosionResistanceComponent, ApplyQualityEvent>(OnExplosionResistApplyQuality);
+        SubscribeLocalEvent<StaminaResistanceComponent, ApplyQualityEvent>(OnStaminaResistApplyQuality);
         SubscribeLocalEvent<DestructibleComponent, ApplyQualityEvent>(OnDestructibleApplyQuality);
         SubscribeLocalEvent<DamageOnHitComponent, ApplyQualityEvent>(OnShivApplyQuality);
         SubscribeLocalEvent<DamageOtherOnHitComponent, ApplyQualityEvent>(OnSpearApplyQuality);
         SubscribeLocalEvent<GunComponent, ApplyQualityEvent>(OnGunApplyQuality);
         SubscribeLocalEvent<ProjectileComponent, ApplyQualityEvent>(OnProjectileApplyQuality);
         SubscribeLocalEvent<DurabilityComponent, ApplyQualityEvent>(OnDurabilityApplyQuality);
+        SubscribeLocalEvent<BlockingComponent, ApplyQualityEvent>(OnShieldApplyQuality);
 
         // interactions
         SubscribeLocalEvent<QualityComponent, ConstructionChangedEvent>(OnConstructionChanged);
@@ -108,6 +114,27 @@ public sealed class QualitySystem : EntitySystem
         Dirty(ent);
     }
 
+    private void OnClothingApplyQuality(Entity<ClothingComponent> ent, ref ApplyQualityEvent args)
+    {
+        var modifier = args.Modifier(0.87f);
+        ent.Comp.EquipDelay *= modifier;
+        Dirty(ent);
+    }
+
+    private void OnExplosionResistApplyQuality(Entity<ExplosionResistanceComponent> ent, ref ApplyQualityEvent args)
+    {
+        var modifier = args.Modifier(0.87f);
+        ent.Comp.DamageCoefficient = modifier;
+        Dirty(ent);
+    }
+
+    private void OnStaminaResistApplyQuality(Entity<StaminaResistanceComponent> ent, ref ApplyQualityEvent args)
+    {
+        var modifier = args.Modifier(0.87f);
+        ent.Comp.DamageCoefficient = modifier;
+        Dirty(ent);
+    }
+
     private void OnDestructibleApplyQuality(Entity<DestructibleComponent> ent, ref ApplyQualityEvent args)
     {
         // 250% health at +5 quality
@@ -148,6 +175,39 @@ public sealed class QualitySystem : EntitySystem
     private void OnDurabilityApplyQuality(Entity<DurabilityComponent> ent, ref ApplyQualityEvent args)
     {
         ent.Comp.DamageProbability /= args.Modifier(1.12f);
+        Dirty(ent);
+    }
+
+    private void OnShieldApplyQuality(Entity<BlockingComponent> ent, ref ApplyQualityEvent args)
+    {
+        var modifierPlus = args.Modifier(1.125f);
+        var modifierMinus = args.Modifier(0.87f);
+        ent.Comp.PassiveBlockFraction *= modifierPlus;
+        ent.Comp.ActiveBlockFraction *= modifierPlus;
+
+        if (ent.Comp.PassiveBlockDamageModifer is { } passive)
+        {
+            foreach (var (key, number) in passive.Coefficients)
+            {
+                passive.Coefficients[key] = number * modifierMinus;
+            }
+            foreach (var (key, number) in passive.FlatReduction)
+            {
+                passive.FlatReduction[key] = number * modifierPlus;
+            }
+        }
+
+        if (ent.Comp.ActiveBlockDamageModifier is { } active)
+        {
+            foreach (var (key, number) in active.Coefficients)
+            {
+                active.Coefficients[key] = number * modifierMinus;
+            }
+            foreach (var (key, number) in active.FlatReduction)
+            {
+                active.FlatReduction[key] = number * modifierPlus;
+            }
+        }
         Dirty(ent);
     }
 
@@ -254,7 +314,7 @@ public sealed class QualitySystem : EntitySystem
         var roll = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent)).Next(1, 100);
 
 
-        ent.Comp.Quality = (added + ent.Comp.Quality + ent.Comp.QualityModifiers - roll) switch
+        ent.Comp.Quality = (added + lowestDelta * 5 + ent.Comp.Quality + ent.Comp.QualityModifiers - roll) switch
         {
             >= 88 => 5,
             >= 44 => 4,
@@ -272,13 +332,13 @@ public sealed class QualitySystem : EntitySystem
         ApplyQuality(ent);
 
         // TODO: limit skill gain based on the recipe used
-        _knowledge.AddExperience(brain, CraftingKnowledge, Math.Abs(ent.Comp.Quality / 2), 20);
+        _knowledge.AddExperience(brain, CraftingKnowledge, Math.Abs(ent.Comp.Quality / 2));
 
         if (lowestId is not { } actualId)
             return;
 
         // TODO: above
-        _knowledge.AddExperience(brain, actualId, Math.Abs(ent.Comp.Quality / 2), 20);
+        _knowledge.AddExperience(brain, actualId, Math.Abs(ent.Comp.Quality / 2));
     }
 
     private bool LevelDeltasMatch(Dictionary<EntProtoId, int> a, Dictionary<EntProtoId, int> b)

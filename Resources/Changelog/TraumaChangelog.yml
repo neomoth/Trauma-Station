@@ -4286,3 +4286,222 @@ Entries:
   id: 502
   time: '2026-03-13T07:31:58.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1221
+- author: aedler
+  changes:
+  - type: Add
+    message: Self pull removes bolas on you
+  id: 503
+  time: '2026-03-13T11:03:35.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1210
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed some characters skill editors not working.
+  id: 504
+  time: '2026-03-13T17:51:56.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1242
+- author: TurboTrackerss14
+  changes:
+  - type: Tweak
+    message: Armory Judo lockers can now be unlocked on blue alert.
+  id: 505
+  time: '2026-03-13T17:53:34.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1238
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: 'Fixed flatpacks getting blocked by ghosts and other stuff. '
+  id: 506
+  time: '2026-03-13T18:12:49.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1245
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed all simplemobs without a brain speaking tau ceti common
+  id: 507
+  time: '2026-03-13T19:06:53.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1246
+- author: GeneRickUsername
+  changes:
+  - type: Fix
+    message: Fixed Krav not being on gloves.
+  id: 508
+  time: '2026-03-13T20:07:43.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1249
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed xeno acid action not using any plasma.
+  id: 509
+  time: '2026-03-13T22:12:04.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1262
+- author: JohnJJohn
+  changes:
+  - type: Add
+    message: Added new end round credit pictures for antags
+  - type: Fix
+    message: Fixed the UI scale messing up the end round credits
+  - type: Fix
+    message: Fixed team antag, solo antag ect showing up in the round end credits
+  id: 510
+  time: '2026-03-13T22:40:10.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1264
+- author: momoyawn
+  changes:
+  - type: Add
+    message: Hand of God applies holy fire damage over time, stacking on hit.
+  id: 511
+  time: '2026-03-13T22:44:33.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1265
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: >-
+      Fixed bald species like arachnids listing hair in markings even though you
+      can't use it.
+  id: 512
+  time: '2026-03-13T23:48:32.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1261
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed cadets getting mk58 magazines...
+  id: 513
+  time: '2026-03-13T23:51:48.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1271
+- author: deltanedas
+  changes:
+  - type: Remove
+    message: Removed ghost bar slop
+  - type: Fix
+    message: Made facehugger shitcode less laggy. It was literally worse than ATMOS.
+  id: 514
+  time: '2026-03-14T00:09:14.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1266
+- author: Aviu
+  changes:
+  - type: Fix
+    message: Fixed heretic rituals disappearing on disconnect
+  id: 515
+  time: '2026-03-14T01:43:36.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1268
+- author: Kirikii
+  changes:
+  - type: Add
+    message: Added Nume Station!
+  id: 516
+  time: '2026-03-14T02:33:16.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1000
+- author: Armok
+  changes:
+  - type: Add
+    message: 6 new bingle variations, George Gimme Sprited them
+  - type: Add
+    message: Update other bingle related sprites
+  - type: Remove
+    message: Xeno Traitor bundle + midround spawn
+  - type: Tweak
+    message: Made midround antag spawnrates coorilate with how round impacting they are
+  - type: Add
+    message: Added parry values to most shield and sword type melee weapons!
+  id: 517
+  time: '2026-03-14T02:46:10.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1275
+- author: NoElkaTheGod
+  changes:
+  - type: Tweak
+    message: Cosmic cultists are now immune to zombie infection.
+  - type: Fix
+    message: Fixed The Monument exploding when evac docks despite being active.
+  id: 518
+  time: '2026-03-14T08:57:48.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1281
+- author: GeneRickUsername
+  changes:
+  - type: Fix
+    message: Allowed crafting to improve.
+  - type: Fix
+    message: Fixed racial mastery not appearing on the tab.
+  id: 519
+  time: '2026-03-14T09:00:25.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1279
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed lit paper never turning to ash.
+  id: 520
+  time: '2026-03-14T13:51:20.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1287
+- author: JohnJJohn
+  changes:
+  - type: Add
+    message: Added end credits image for heretic
+  - type: Add
+    message: Added end credits image for image
+  - type: Fix
+    message: Fixed heretic gouls appearing in the end credits (the movie style one)
+  id: 521
+  time: '2026-03-14T14:43:08.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1289
+- author: deltanedas
+  changes:
+  - type: Tweak
+    message: >-
+      Midround antag spawns have been reworked. Only 2 major and 3 minor antags
+      can spawn midround, ninja vs vent slimes.
+  - type: Tweak
+    message: 'Antags spawns are now timed independently of regular events. '
+  id: 522
+  time: '2026-03-14T15:03:37.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1291
+- author: deltanedas
+  changes:
+  - type: Tweak
+    message: Old scrolls now have text of random prayers.
+  id: 523
+  time: '2026-03-14T15:46:48.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1294
+- author: GeneRickUsername
+  changes:
+  - type: Fix
+    message: Scrap helmet covers head now.
+  id: 524
+  time: '2026-03-14T18:10:40.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1296
+- author: deltanedas
+  changes:
+  - type: Remove
+    message: Removed small ponchos.
+  id: 525
+  time: '2026-03-14T18:37:23.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1300
+- author: deltanedas
+  changes:
+  - type: Tweak
+    message: Rounds should start a tiny bit faster.
+  id: 526
+  time: '2026-03-14T18:53:25.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1299
+- author: GeneRickUsername
+  changes:
+  - type: Add
+    message: Added a few more quality events.
+  id: 527
+  time: '2026-03-14T20:56:21.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1303
+- author: GeneRickUsername
+  changes:
+  - type: Add
+    message: Added shield logic
+  - type: Fix
+    message: Fixed Quality formula not accounting knowledge (little error)
+  id: 528
+  time: '2026-03-14T23:15:17.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1310
+- author: assripper.
+  changes:
+  - type: Tweak
+    message: xenos can actually win now
+  id: 529
+  time: '2026-03-14T23:19:01.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1314
