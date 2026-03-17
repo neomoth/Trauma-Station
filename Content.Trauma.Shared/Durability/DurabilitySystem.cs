@@ -329,7 +329,7 @@ public sealed class DurabilitySystem : EntitySystem
     private void OnStateChangeGun(Entity<GunComponent> ent, ref DurabilityStateChangedEvent args)
     {
         // guns need to refresh modifiers
-        _gun.RefreshModifiers(ent.Owner, args.Attacker);
+        _gun.RefreshModifiers(ent.AsNullable(), args.Attacker);
     }
 
     private void OnInteractUsing(Entity<DurabilityComponent> ent, ref InteractUsingEvent args)
