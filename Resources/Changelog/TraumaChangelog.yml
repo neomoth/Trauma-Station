@@ -4749,3 +4749,12 @@ Entries:
   id: 557
   time: '2026-03-17T14:21:09.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1379
+- author: neomoth
+  changes:
+  - type: Add
+    message: Added a weapon durability system.
+  - type: Tweak
+    message: The baseball bat now uses the durability system.
+  id: 558
+  time: '2026-03-17T15:46:55.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1225
