@@ -5030,3 +5030,14 @@ Entries:
   id: 591
   time: '2026-03-20T13:52:59.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1468
+- author: MayasMischief
+  changes:
+  - type: Add
+    message: >-
+      Added Combustible Lemons you can mutate from Lemoons, so you can burn
+      Life's house down.
+  - type: Fix
+    message: Fixed Delta's shitcode, rather than Delta fixing mine. Viva la revolution.
+  id: 592
+  time: '2026-03-20T16:15:27.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1470
