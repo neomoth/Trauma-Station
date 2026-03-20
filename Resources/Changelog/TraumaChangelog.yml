@@ -5048,3 +5048,10 @@ Entries:
   id: 593
   time: '2026-03-20T18:34:24.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1479
+- author: deltanedas
+  changes:
+  - type: Fix
+    message: Fixed xeno evolution UI etc. not working.
+  id: 594
+  time: '2026-03-20T20:01:43.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1484
