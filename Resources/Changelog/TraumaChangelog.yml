@@ -5352,3 +5352,12 @@ Entries:
   id: 628
   time: '2026-03-24T19:41:45.0000000+00:00'
   url: https://github.com/Trauma-Station/Trauma-Station/pull/1553
+- author: deltanedas
+  changes:
+  - type: Add
+    message: Serpentcrest is back in the map pool!
+  - type: Add
+    message: Cargo now gets a free telepad roundstart.
+  id: 629
+  time: '2026-03-24T20:42:42.0000000+00:00'
+  url: https://github.com/Trauma-Station/Trauma-Station/pull/1561
