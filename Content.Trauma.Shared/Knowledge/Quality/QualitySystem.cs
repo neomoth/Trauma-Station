@@ -175,7 +175,15 @@ public sealed class QualitySystem : EntitySystem
 
     private void OnDurabilityApplyQuality(Entity<DurabilityComponent> ent, ref ApplyQualityEvent args)
     {
-        ent.Comp.DamageProbability /= args.Modifier(args.Proto.Durability);
+        var mod = args.Modifier(args.Proto.Durability);
+        ent.Comp.DamageProbability /= mod;
+        if (ent.Comp.DamageRoll.SingleValue is not null)
+            ent.Comp.DamageRoll.SingleValue /= mod;
+        else
+        {
+            ent.Comp.DamageRoll.Min /= mod;
+            ent.Comp.DamageRoll.Max /= mod;
+        }
         Dirty(ent);
     }
 
