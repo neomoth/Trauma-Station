@@ -102,7 +102,7 @@
   - type: UndetectableContraband #Goobstation-Contraband detector
   # <Trauma>
   - type: Durability
-    durabilityThresholds:
+    stateThresholds:
       # Reinforced, if not specified here, will default to anything under 0.
       0: Pristine
       10: Worn
@@ -126,16 +126,25 @@
       - durability-weapon-bat-7
       - durability-weapon-bat-8
       - durability-weapon-bat-9
-    onBreakBehavior: !type:SpawnEntitiesBehavior
-      spawn:
-        MaterialWoodPlank1:
-          min: 2
-          max: 3
-    minDamageRoll: 2
-    maxDamageRoll: 5
+    behaviorThresholds:
+    - triggersOnce: true
+      trigger: !type:DurabilityStateTrigger
+        state: Destroyed
+      behaviors:
+        - !type:SpawnEntitiesBehavior
+          spawn:
+            MaterialWoodPlank1:
+              min: 2
+              max: 3
+        - !type:DestroyBehavior
+    damageRoll:
+      min: 2
+      max: 5
     repairDoAfter: 3
     repairMaterials:
-      Wood: 4, 6
+      Wood:
+        min: 4
+        max: 6
     maxRepairBonus: 8
   # </Trauma>
 

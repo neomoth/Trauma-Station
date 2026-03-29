@@ -2,7 +2,6 @@
 
 using System.Linq;
 using Content.Shared.Damage.Components;
-using Content.Shared.Destructible;
 using Content.Shared.DoAfter;
 using Content.Shared.Examine;
 using Content.Shared.FixedPoint;
@@ -20,6 +19,9 @@ using Content.Shared.Weapons.Ranged.Events;
 using Content.Shared.Weapons.Ranged.Systems;
 using Content.Trauma.Shared.Durability.Components;
 using Content.Trauma.Shared.Durability.Events;
+using Content.Trauma.Shared.Durability.Types.Thresholds;
+using Content.Trauma.Shared.Durability.Types.Thresholds.Triggers;
+using Robust.Shared.Audio.Systems;
 using Robust.Shared.Prototypes;
 using Robust.Shared.Random;
 using Robust.Shared.Serialization;
@@ -28,17 +30,19 @@ using Robust.Shared.Utility;
 
 namespace Content.Trauma.Shared.Durability;
 
-public sealed class DurabilitySystem : EntitySystem
+public abstract class SharedDurabilitySystem : EntitySystem
 {
-    [Dependency] private readonly SharedDestructibleSystem _destructible = default!;
+    [Dependency] public readonly IPrototypeManager Proto = default!;
+    [Dependency] public readonly IRobustRandom Random = default!;
+    public new IEntityManager EntityManager => base.EntityManager;
+
     [Dependency] private readonly SharedPopupSystem _popup = default!;
     [Dependency] private readonly SharedDoAfterSystem _doAfter = default!;
     [Dependency] private readonly SharedStackSystem _stack = default!;
     [Dependency] private readonly SharedToolSystem _tool = default!;
     [Dependency] private readonly SharedGunSystem _gun = default!;
     [Dependency] private readonly IGameTiming _timing = default!;
-    [Dependency] private readonly IRobustRandom _random = default!;
-    [Dependency] private readonly IPrototypeManager _proto = default!;
+    [Dependency] private readonly SharedAudioSystem _audio = default!;
 
     private static readonly Dictionary<DurabilityState, Color> AssociatedColors = new()
     {
@@ -101,9 +105,33 @@ public sealed class DurabilitySystem : EntitySystem
             RaiseLocalEvent(uid, ref stateEv);
         }
 
-        var afterEv = new DurabilityDamageChangedEvent(uid, comp.Damage, oldDamage);
+        var afterEv = new DurabilityDamageChangedEvent(uid, comp.Damage, oldDamage, attacker);
         RaiseLocalEvent(uid, ref afterEv);
         return oldDamage != comp.Damage;
+    }
+
+    /// <summary>
+    /// Raise events with the highest possible damage on this entity and delete it.<br/>
+    /// Does not raise the damage attempt event.
+    /// </summary>
+    public void DestroyEntity(EntityUid uid, DurabilityComponent? comp = null)
+    {
+        if (!Resolve(uid, ref comp))
+            return;
+
+        var oldState = comp.DurabilityState;
+        comp.DurabilityState = DurabilityState.Destroyed;
+        var stateEv = new DurabilityStateChangedEvent(oldState, comp.DurabilityState, uid);
+
+        var oldDamage = comp.Damage;
+        comp.Damage = comp.StateThresholds.Last().Key;
+        var dmgEv = new DurabilityDamageChangedEvent(uid, comp.Damage, oldDamage);
+
+        Dirty(uid, comp);
+        RaiseLocalEvent(uid, ref stateEv);
+        RaiseLocalEvent(uid, ref dmgEv);
+
+        QueueDel(uid);
     }
 
     private bool RollDamageChance(EntityUid uid, DurabilityComponent comp)
@@ -115,11 +143,11 @@ public sealed class DurabilitySystem : EntitySystem
 
     private DurabilityState GetDurabilityState(DurabilityComponent comp)
     {
-        foreach (var (threshold, durabilityState) in comp.DurabilityThresholds.Reverse())
+        foreach (var (threshold, durabilityState) in comp.StateThresholds.Reverse())
         {
             // handle reinforced if not defined
             if (durabilityState is DurabilityState.Pristine &&
-                !comp.DurabilityThresholds.ContainsValue(DurabilityState.Reinforced) && comp.Damage < 0)
+                !comp.StateThresholds.ContainsValue(DurabilityState.Reinforced) && comp.Damage < 0)
                 return DurabilityState.Reinforced;
 
             if (comp.Damage < threshold)
@@ -144,7 +172,7 @@ public sealed class DurabilitySystem : EntitySystem
         ExamineMats.Clear();
         foreach (var material in comp.RepairMaterials.Keys)
         {
-            if (!_proto.Resolve(material, out var proto))
+            if (!Proto.Resolve(material, out var proto))
                 continue;
             ExamineMats.Add(proto);
         }
@@ -234,7 +262,7 @@ public sealed class DurabilitySystem : EntitySystem
             return;
 
         var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
-        var damage = random.NextFloat(ent.Comp.MinDamageRoll.Float(), ent.Comp.MaxDamageRoll.Float());
+        var damage = ent.Comp.DamageRoll.Next(random);
         DamageEntity(ent.Owner, damage, ent.Comp, args.User, args.HitEntities.ToHashSet());
     }
 
@@ -255,7 +283,7 @@ public sealed class DurabilitySystem : EntitySystem
     private void OnGunShot(Entity<DurabilityComponent> ent, ref GunShotEvent args)
     {
         var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
-        var damage = random.NextFloat(ent.Comp.MinDamageRoll.Float(), ent.Comp.MaxDamageRoll.Float());
+        var damage = ent.Comp.DamageRoll.Next(random);
         DamageEntity(ent.Owner, damage, ent.Comp, args.User); // targets not applicable
     }
 
@@ -273,6 +301,9 @@ public sealed class DurabilitySystem : EntitySystem
 
     private void OnDurabilityDamageChanged(Entity<DurabilityComponent> ent, ref DurabilityDamageChangedEvent args)
     {
+        if (EntityManager.IsQueuedForDeletion(ent) || Deleted(ent))
+            return;
+
         var diff = args.Damage - args.OldDamage;
 
         switch (Math.Sign(diff.Value))
@@ -290,12 +321,14 @@ public sealed class DurabilitySystem : EntitySystem
             case > 0:
             {
                 if (!ent.Comp.DamagePopups.TryGetValue(ent.Comp.DurabilityState, out var pool))
-                    return;
-                var locId = _random.Pick(pool);
+                    break;
+                var locId = Random.Pick(pool);
                 _popup.PopupPredictedCoordinates(Loc.GetString(locId),
                     Transform(ent.Owner).Coordinates,
                     null,
                     PopupType.SmallCaution);
+                if (ent.Comp.DamageSound is not null)
+                    _audio.PlayPredicted(ent.Comp.DamageSound, Transform(ent).Coordinates, args.Attacker);
                 break;
             }
             case 0 when ent.Comp.Damage <= -ent.Comp.MaxRepairBonus:
@@ -307,17 +340,40 @@ public sealed class DurabilitySystem : EntitySystem
                 break;
             }
         }
+
+        if (diff <= 0)
+            return;
+
+        // execute damage thresholds
+        foreach (var threshold in ent.Comp.BehaviorThresholds.Where(threshold =>
+                     threshold.Trigger?.GetType() == typeof(DurabilityDamageTrigger)))
+        {
+            if (Triggered(threshold, ent))
+                TriggerThreshold(ent, threshold);
+            // break early if destroyed.
+            if (EntityManager.IsQueuedForDeletion(ent) || Deleted(ent))
+                break;
+        }
     }
 
     private void OnDurabilityStateChanged(Entity<DurabilityComponent> ent, ref DurabilityStateChangedEvent args)
     {
+        if(EntityManager.IsQueuedForDeletion(ent) || Deleted(ent))
+            return;
+
         if (args.NewState is not DurabilityState.Destroyed)
             return;
 
-        ent.Comp.OnBreakBehavior?.Execute(ent.Owner, _destructible);
-        if (!ent.Comp.DeleteOnDestroyed)
-            return;
-        PredictedQueueDel(ent.Owner);
+        // execute state thresholds
+        foreach (var threshold in ent.Comp.BehaviorThresholds.Where(threshold =>
+                     threshold.Trigger?.GetType() == typeof(DurabilityStateTrigger)))
+        {
+            if (Triggered(threshold, ent))
+                TriggerThreshold(ent, threshold);
+            // break early if destroyed.
+            if (EntityManager.IsQueuedForDeletion(ent) || Deleted(ent))
+                break;
+        }
 
         if (TryComp<MeleeWeaponComponent>(args.Attacker, out var userMelee))
         {
@@ -384,11 +440,11 @@ public sealed class DurabilitySystem : EntitySystem
         if (args.Cancelled || args.Handled || Deleted(args.Used))
             return;
 
-        var (min, max) = args.MinMax;
+        var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
 
         // deal negative damage to heal
         if (!DamageEntity(ent.Owner,
-                -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner)).NextFloat(min, max),
+                -args.MinMax.Next(random),
                 ent.Comp))
             return;
 
@@ -408,16 +464,24 @@ public sealed class DurabilitySystem : EntitySystem
         if (ent.Comp.RepairTool is null)
             return;
 
-        var (min, max) = ent.Comp.ToolRepairAmount;
+        var random = SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner));
 
         DamageEntity(ent.Owner,
-            -SharedRandomExtensions.PredictedRandom(_timing, GetNetEntity(ent.Owner)).NextFloat(min, max),
+            -ent.Comp.ToolRepairAmount.Next(random),
             ent.Comp);
 
         _tool.PlayToolSound(args.Used.Value, Comp<ToolComponent>(args.Used.Value), args.User);
 
         args.Handled = true;
     }
+
+    // The following functions are defined here so that they can be called in shared but given proper functionality in server.
+    public virtual bool Triggered(DurabilityDamageThreshold threshold, Entity<DurabilityComponent> ent)
+    {
+        return false;
+    }
+
+    protected virtual void TriggerThreshold(Entity<DurabilityComponent> ent, DurabilityDamageThreshold threshold){}
 }
 
 [Serializable, NetSerializable]

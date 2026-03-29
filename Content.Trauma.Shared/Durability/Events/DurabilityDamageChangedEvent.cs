@@ -8,4 +8,4 @@ namespace Content.Trauma.Shared.Durability.Events;
 public record struct DurabilityChangeAttemptEvent(EntityUid Uid, FixedPoint2 Damage);
 
 [ByRefEvent]
-public record struct DurabilityDamageChangedEvent(EntityUid Uid, FixedPoint2 Damage, FixedPoint2 OldDamage);
+public record struct DurabilityDamageChangedEvent(EntityUid Uid, FixedPoint2 Damage, FixedPoint2 OldDamage, EntityUid? Attacker = null);

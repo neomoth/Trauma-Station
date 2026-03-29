@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: AGPL-3.0-or-later
 
-using System.Numerics;
-using Content.Shared.Destructible.Thresholds.Behaviors;
 using Content.Shared.FixedPoint;
 using Content.Shared.Materials;
 using Content.Shared.Tools;
+using Content.Trauma.Shared.Durability.Types;
+using Content.Trauma.Shared.Durability.Types.Thresholds;
+using Robust.Shared.Audio;
 using Robust.Shared.GameStates;
 using Robust.Shared.Prototypes;
 
@@ -26,7 +27,7 @@ public sealed partial class DurabilityComponent : Component
     /// Thresholds for when to change state. Entities will attempt to break when reaching <see cref="DurabilityState.Broken"/>.
     /// </summary>
     [DataField]
-    public SortedDictionary<FixedPoint2, DurabilityState> DurabilityThresholds = [];
+    public SortedDictionary<FixedPoint2, DurabilityState> StateThresholds = [];
 
     /// <summary>
     /// The total amount of damage this entity has sustained.
@@ -41,6 +42,12 @@ public sealed partial class DurabilityComponent : Component
     public float DamageProbability = 0.35f;
 
     /// <summary>
+    /// Sound path or collection to play upon receiving damage. Does not play when receiving negative damage (healing)
+    /// </summary>
+    [DataField, AutoNetworkedField]
+    public SoundSpecifier? DamageSound;
+
+    /// <summary>
     /// Sorted by durability state so you can have 2-3 popups that can show when initially damaging weapon, some that
     /// it shows when taking damage and is already damaged, as well as some that show when it breaks. All entries
     /// in the LocId HashSets have an equal chance of being selected.
@@ -49,20 +56,10 @@ public sealed partial class DurabilityComponent : Component
     public SortedDictionary<DurabilityState, HashSet<LocId>> DamagePopups = [];
 
     /// <summary>
-    /// What to do when the entity has depleted all of its durability.
-    /// Supports any <see cref="IThresholdBehavior"/> so it can be done like how you would do it on a <see cref="Content.Shared.Destructible.DestructibleComponent"/>.
-    /// Can omit destruction act as the entity will be deleted anyway once it breaks.
+    /// Threshold behaviors to execute upon reaching a given threshold.
     /// </summary>
     [DataField(serverOnly: true)]
-    public IThresholdBehavior? OnBreakBehavior;
-
-    /// <summary>
-    /// Whether to actually delete the entity when <see cref="DurabilityState"/> is <see cref="DurabilityState.Destroyed"/>.
-    /// This could be set to false in order to allow the entity to be repaired while remaining unusable.
-    /// Entities in the <see cref="DurabilityState.Destroyed"/> will cause <see cref="Content.Shared.Weapons.Melee.Events.AttemptMeleeEvent"/> to be canceled.
-    /// </summary>
-    [DataField, AutoNetworkedField]
-    public bool DeleteOnDestroyed = true;
+    public List<DurabilityDamageThreshold> BehaviorThresholds = [];
 
     /// <summary>
     /// The popup to show when attempting to swing a weapon entity that is in the <see cref="DurabilityState.Destroyed"/> state.
@@ -71,16 +68,10 @@ public sealed partial class DurabilityComponent : Component
     public LocId? DestroyedSwingAttemptPopup = new LocId("durability-attempt-melee-destroyed");
 
     /// <summary>
-    /// Minimum damage that can be dealt to the entity when passing the damage chance.
+    /// Damage to be dealt to the durability when damage change succeeds.
     /// </summary>
     [DataField, AutoNetworkedField]
-    public FixedPoint2 MinDamageRoll = 3;
-
-    /// <summary>
-    /// Maximum damage that can be dealt to the entity when passing the damage chance.
-    /// </summary>
-    [DataField, AutoNetworkedField]
-    public FixedPoint2 MaxDamageRoll = 6;
+    public MinMaxFixedPoint2 DamageRoll = new (3, 6);
 
     /// <summary>
     /// Modifiers that apply to the weapon depending on the state. <see cref="DurabilityState.Destroyed"/> can be omitted as
@@ -104,7 +95,7 @@ public sealed partial class DurabilityComponent : Component
     /// Yes, the minmax is a vec2. Yes I hate it too.
     /// </summary>
     [DataField, AutoNetworkedField]
-    public Dictionary<ProtoId<MaterialPrototype>, Vector2> RepairMaterials = [];
+    public Dictionary<ProtoId<MaterialPrototype>, MinMaxFixedPoint2> RepairMaterials = [];
 
     /// <summary>
     /// Set of tool qualities that can be used to repair this entity, and how much it will repair the entity by.
@@ -117,7 +108,7 @@ public sealed partial class DurabilityComponent : Component
     /// How much the repair tool should repair the entity by.
     /// </summary>
     [DataField, AutoNetworkedField]
-    public Vector2 ToolRepairAmount = Vector2.Zero;
+    public MinMaxFixedPoint2 ToolRepairAmount;
 
     /// <summary>
     /// If using a welder to repair this, how much fuel it should cost.

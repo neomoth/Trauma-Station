@@ -2,6 +2,7 @@
 
 using System.Numerics;
 using Content.Shared.DoAfter;
+using Content.Trauma.Shared.Durability.Types;
 using Robust.Shared.Serialization;
 
 namespace Content.Trauma.Shared.Durability.Events;
@@ -10,14 +11,14 @@ namespace Content.Trauma.Shared.Durability.Events;
 public sealed partial class RepairItemDoAfterEvent : DoAfterEvent
 {
     [DataField]
-    public Vector2 MinMax;
+    public MinMaxFixedPoint2 MinMax;
 
     private RepairItemDoAfterEvent()
     {
 
     }
 
-    public RepairItemDoAfterEvent(Vector2 minMax)
+    public RepairItemDoAfterEvent(MinMaxFixedPoint2 minMax)
     {
         MinMax = minMax;
     }
