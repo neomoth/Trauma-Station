@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: AGPL-3.0-or-later
+
 using Content.Shared.Database;
 
 namespace Content.Trauma.Shared.Durability.Types.Thresholds;
